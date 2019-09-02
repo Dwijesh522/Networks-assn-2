@@ -1,3 +1,9 @@
+///-------------------------------------------------------------------------------------
+///--------------------------------- a package cryptography ----------------------------
+///----------------------- to use this package, see the makefile -----------------------
+//-------------------------you will need to set classpath for this package -------------
+//--------------------------------------------------------------------------------------
+package cryptography;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -11,7 +17,7 @@ import java.security.spec.X509EncodedKeySpec;
 
 import javax.crypto.Cipher;
 
-public class CryptographyExample {
+public class cryptographyExample {
 
     private static final String ALGORITHM = "RSA";
 
@@ -56,21 +62,21 @@ public class CryptographyExample {
         return generateKeyPair;
     }
 
-    public static void main(String[] args) throws Exception {
+//    public static void main(String[] args) throws Exception {
+	
+//    	KeyPair generateKeyPair = generateKeyPair();
+//        byte[] publicKey = generateKeyPair.getPublic().getEncoded();
+//        byte[] privateKey = generateKeyPair.getPrivate().getEncoded();
 
-        KeyPair generateKeyPair = generateKeyPair();
-        byte[] publicKey = generateKeyPair.getPublic().getEncoded();
-        byte[] privateKey = generateKeyPair.getPrivate().getEncoded();
+//        byte[] encryptedData = encrypt(publicKey,
+//                "hi there".getBytes());
 
-        byte[] encryptedData = encrypt(publicKey,
-                "hi there".getBytes());
+//        byte[] decryptedData = decrypt(privateKey, encryptedData);
 
-        byte[] decryptedData = decrypt(privateKey, encryptedData);
+//        System.out.println(new String(encryptedData));
+//        System.out.println(new String(decryptedData));
 
-        System.out.println(new String(encryptedData));
-        System.out.println(new String(decryptedData));
-
-    }
+//    }
 
 }
 
