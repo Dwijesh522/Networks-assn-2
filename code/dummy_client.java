@@ -12,35 +12,7 @@ class communication_thread implements Runnable
 	{
 		try
 		{
-			// even id: send thread
-			// odd id : receiving thread
-			if(Thread.currentThread().getId() % 2 == 0)
-			{
-				//reading and parsing the user input
-				boolean correctly_parsed = false;
-				do
-				{
-					// reading input from the user
-					Scanner input_scanner = new Scanner(System.in);
-					System.out.println("type: @recipien_user_id message");
-					String user_input = input_scanner.nextLine();
-					
-					//parsing the user input
-					int index=0, user_input_length = user_input.length();
-					String message="", recipient="";
-					if(user_input[index] == '@')
-					{
-						for(; user_input[index]!=' '; index++)	recipient += user_input[index];
-						index++;
-						for(; index < user_input_length; index++)	message+=user_input[index];
-					}
-				}
-				while(!correctly_parsed);
-			}
-			else
-			{
-
-			}
+			System.out.println("hello world from thread: " + Thread.currentThread().getId());
 		}
 		catch(Exception e)
 		{
@@ -48,7 +20,7 @@ class communication_thread implements Runnable
 		}
 	}
 }
-public class client
+public class dummy_client
 {
 	private static int send_port = 6789, receive_port = 6790;
 	public static void main(String[] args) throws Exception
@@ -80,29 +52,27 @@ public class client
 		out_to_server.writeBytes(msg_to_server);
 
 		//waiting for server ack
-		String reg_response_from_server = in_from_server.readLine();
-		if(reg_response_from_server == "ERROR 100 Malformed username")
-		{
-			System.out.println("ERROR 100 Malformed username: " + "Try again with correct username(alphabets and numerals only)");
-			return;
-		}
+//		String reg_response_from_server = in_from_server.readLine();
+//		if(reg_response_from_server == "ERROR 100 Malformed username")
+//		{
+//			System.out.println("ERROR 100 Malformed username: " + "Try again with correct username(alphabets and numerals only)");
+//			return;
+//		}
 
 		//sending torcv msg to server
 		msg_to_server = "REGISTER TORECV " + myusername + '\n' + public_key_string + '\n' + '\n';
 		out_to_server.writeBytes(msg_to_server);
 
 		//waiting for server ack
-		reg_response_from_server = in_from_server.readLine();
-		if(reg_response_from_server == "ERROR 100 Malformed username")
-		{
-			System.out.println("ERROR 100 Malformed username: " + "Try again with correct username(alphabets and numerals only)");
-			return;
-		}
+//		reg_response_from_server = in_from_server.readLine();
+//		if(reg_response_from_server == "ERROR 100 Malformed username")
+//		{
+//			System.out.println("ERROR 100 Malformed username: " + "Try again with correct username(alphabets and numerals only)");
+//			return;
+//		}
 		
-		System.out.println(myusername + " registered successfully.");
-
 		//creating two threads
-		for(int i=0; i<2; i++)
+		for(int i=0; i<5; i++)
 		{
 			communication_thread communication = new communication_thread();
 			Thread thread = new Thread(communication);
