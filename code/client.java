@@ -28,11 +28,11 @@ class communication_thread implements Runnable
 					//parsing the user input
 					int index=0, user_input_length = user_input.length();
 					String message="", recipient="";
-					if(user_input[index] == '@')
+					if(user_input.charAt(index) == '@')
 					{
-						for(; user_input[index]!=' '; index++)	recipient += user_input[index];
+						for(; user_input.charAt(index)!=' '; index++)	recipient += user_input.charAt(index);
 						index++;
-						for(; index < user_input_length; index++)	message+=user_input[index];
+						for(; index < user_input_length; index++)	message+=user_input.charAt(index);
 					}
 				}
 				while(!correctly_parsed);
