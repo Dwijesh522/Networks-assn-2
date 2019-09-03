@@ -12,7 +12,44 @@ class communication_thread implements Runnable
 	{
 		try
 		{
-			System.out.println("hello world from thread: " + Thread.currentThread().getId());
+			// even id: send thread
+			// odd id : receiving thread
+			if(Thread.currentThread().getId() % 2 == 0)
+			{
+				//reading and parsing the user input
+				boolean correctly_parsed = false;
+				String recipient="", message="";
+				do
+				{
+					// reading input from the user
+					Scanner input_scanner = new Scanner(System.in);
+					System.out.println("type: @recipient_user_id message");
+					String user_input = input_scanner.nextLine();
+					
+					//parsing the user input
+					int index=0, user_input_length = user_input.length();
+					recipient = "";
+					message = "";	
+					if(user_input.charAt(index) == '@')
+					{
+						for(; index < user_input_length && user_input.charAt(index)!=' '; index++)	recipient += user_input.charAt(index);
+						if(index != user_input_length)
+						{
+							index++;
+							for(; index < user_input_length; index++)	message+=user_input.charAt(index);
+							correctly_parsed = true;
+						}
+						else	System.out.println("invalid syntax, try again");
+					}
+					else	System.out.println("invalid syntax, try again");
+				}
+				while(!correctly_parsed);
+				System.out.println(recipient + " " + message);
+			}
+			else
+			{
+
+			}
 		}
 		catch(Exception e)
 		{
@@ -71,8 +108,10 @@ public class dummy_client
 //			return;
 //		}
 		
+		System.out.println(myusername + " registered successfully.");
+
 		//creating two threads
-		for(int i=0; i<5; i++)
+		for(int i=0; i<2; i++)
 		{
 			communication_thread communication = new communication_thread();
 			Thread thread = new Thread(communication);
