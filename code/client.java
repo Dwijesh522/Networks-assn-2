@@ -158,6 +158,9 @@ class communication_thread implements Runnable
 					response_from_server = in_receive_socket.readLine();
 					if(response_from_server != "generic error")	public_key_sender_string = response_from_server.substring(3);
 					else	{ System.out.println("sender not registered, ignoring this packet."); continue;}
+					//sending ack to server
+					msg_to_server = "RECVD_KEY" + '\n' + '\n';
+					out_receive_socket.writeBytes(msg_to_server);
 
 					// signature check
 					// hash of ecncrypted message
@@ -172,7 +175,8 @@ class communication_thread implements Runnable
 						msg_to_server = "RECEIVED " + sender_username + '\n' + '\n';
 						out_receive_socket.writeBytes(msg_to_server);
 						// decrypting the message
-						String decrypted_message = crypto_object.decrypt(private_key_self, java.util.Base64.getDecoder().decode(encrypted_msg_string));
+						byte[] decrypted_message = crypto_object.decrypt(private_key_self, java.util.Base64.getDecoder().decode(encrypted_msg_string));
+						String decrypted_message_string = java.util.Base64.getEncoder().encodeToString(decrypted_message);
 						//show it to user
 						System.out.println(sender_username + ": " + decrypted_message);
 					}
