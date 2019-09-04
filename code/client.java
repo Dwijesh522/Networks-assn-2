@@ -34,6 +34,11 @@ class communication_thread implements Runnable
 			{
 				while(true)
 				{
+					String str = null;
+					while((str = in_send_socket.readLine()) != null)
+					{
+						if (str.isEmpty()) break;
+					}
 					//reading and parsing the user input
 					boolean correctly_parsed = false;
 					String recipient="", message="", public_key_recipient="", msg_to_server="", response_from_server="";
@@ -59,15 +64,22 @@ class communication_thread implements Runnable
 							else	{ System.out.println("invalid syntax, try again"); continue;}
 						}
 						else	{ System.out.println("invalid syntax, try again"); continue;}
+						System.out.println("recipient_id: " + recipient + '\n' + "message: " + message);
 
 						// fetching recipient public key
+						System.out.println("fetching recipient public key from send socket...");
 						msg_to_server = "GET_PUBLICKEY " + recipient + '\n' + '\n';
+						System.out.println("msg_to_server: " + msg_to_server);
 						out_send_socket.writeBytes(msg_to_server);
+						System.out.println("waiting for response...");
 						response_from_server = in_send_socket.readLine();
-						if(response_from_server != "ERROR 104 Recipient user not registered")	public_key_recipient = response_from_server.substring(3);
+						System.out.println("got the response...\nresponse is: " + response_from_server);
+						if(response_from_server != "ERROR 104 recipient user not registered")	public_key_recipient = response_from_server.substring(3);
 						else	{ System.out.println("Recipient not registered, try again later or with diff username."); continue;}
+						in_send_socket.readLine();
 						//sending ack to server
 						msg_to_server = "RECVD_KEY" + '\n' + '\n';
+						System.out.println("sending ack to server...\nmessage is: " + msg_to_server);
 						out_send_socket.writeBytes(msg_to_server);
 						
 						correctly_parsed = true;
@@ -83,27 +95,31 @@ class communication_thread implements Runnable
 					// dispatch message and signature through send packet
 					String encrypted_msg_string = java.util.Base64.getEncoder().encodeToString(encrypted_msg);
 					String signature_string = java.util.Base64.getEncoder().encodeToString(signature);
-					int msg_length = encrypted_msg.length, signature_length = signature.length;
+					int msg_length = encrypted_msg_string.getBytes().length, signature_length = signature_string.getBytes().length;// byte length and string length are different
 					msg_to_server = "SEND " + recipient + '\n' + "Message_length: " + msg_length + '\n' 
 							+ "Signature_length: " + signature_length + '\n' + '\n'
 							+ encrypted_msg_string + '\n' + '\n'
 							+ signature_string + '\n' + '\n';
 					out_send_socket.writeBytes(msg_to_server);
-					
+
 					// wait for the server response
 					response_from_server = in_send_socket.readLine();
 					if(response_from_server == "ERROR 102 Unable to send")
 						System.out.println("ERROR 102 Unable to send message to recipient " + recipient);
-					else if(response_from_server == "ERROR 102 Header incomplete")
-						System.out.println("ERROR 102 Header incomplete");
+					else if(response_from_server == "ERROR 103 Header incomplete")
+						System.out.println("ERROR 103 Header incomplete");
 					else
 						System.out.println("Message sent to recipient " + recipient);
+					in_send_socket.readLine();
 				}
 			}
 			else
 			{
 				while(true)
 				{
+					String str = null;
+					System.out.println("hello");
+					while((str = in_receive_socket.readLine()) != null){}
 					// waiting for FORWARD message from server
 					String response_from_server = "", msg_to_server = "";
 					response_from_server = in_receive_socket.readLine();
@@ -149,21 +165,22 @@ class communication_thread implements Runnable
 					String encrypted_msg_string = in_receive_socket.readLine();	// in base64
 					response_from_server = in_receive_socket.readLine();
 					String signature_string = in_receive_socket.readLine();		// in base64
-
+					in_receive_socket.readLine();
 
 					// fetching the sender's public key
 					String public_key_sender_string = "";
 					msg_to_server = "GET_PUBLICKEY " + sender_username + '\n' + '\n';
 					out_receive_socket.writeBytes(msg_to_server);
 					response_from_server = in_receive_socket.readLine();
-					if(response_from_server != "generic error")	public_key_sender_string = response_from_server.substring(3);
+					if(response_from_server != "ERROR 104 recipient user not registered")	public_key_sender_string = response_from_server.substring(3);
 					else	{ System.out.println("sender not registered, ignoring this packet."); continue;}
 					//sending ack to server
 					msg_to_server = "RECVD_KEY" + '\n' + '\n';
 					out_receive_socket.writeBytes(msg_to_server);
+					in_receive_socket.readLine();
 
 					// signature check
-					// hash of ecncrypted message
+					// hash of ecncrypted messageString str = null;
 					MessageDigest md = MessageDigest.getInstance("SHA-256");
 					byte[] hash_msg1 = md.digest(java.util.Base64.getDecoder().decode(encrypted_msg_string));
 					// decrypt the signature with public key of the sender to get hash of encrypted message
@@ -182,11 +199,14 @@ class communication_thread implements Runnable
 					}
 					else
 					{
+						msg_to_server = "Message corrupted." + '\n' + '\n';
+						out_receive_socket.writeBytes(msg_to_server);
+						System.out.println("Message from " + sender_username + " seems to be corrupted, failed in signature check. Ignoring the packet.");
 						// figure out what to do
 					}
 				}
 			}
-	}
+		}
 		catch(Exception e)
 		{
 			System.out.println("Exception cought\n");
@@ -221,31 +241,44 @@ public class client
 		BufferedReader in_send_socket = new BufferedReader(new InputStreamReader(send_socket.getInputStream()));
 		BufferedReader in_receive_socket = new BufferedReader(new InputStreamReader(receive_socket.getInputStream()));
 
-		//sending tosend message to server
+		String msg_to_server="";
 		String public_key_string = java.util.Base64.getEncoder().encodeToString(public_key);
-		String msg_to_server = "REGISTER TOSEND " + myusername + '\n' + public_key_string + '\n' + '\n';
-		out_send_socket.writeBytes(msg_to_server);
-
-		//waiting for server ack
-		String reg_response_from_server = in_send_socket.readLine();
-		if(reg_response_from_server == "ERROR 100 Malformed username")
-		{
-			System.out.println("ERROR 100 Malformed username: " + "Try again with correct username(alphabets and numerals only)");
-			return;
-		}
-
 		//sending torcv msg to server
+		System.out.println("sending torcv msg to server...");
 		msg_to_server = "REGISTER TORECV " + myusername + '\n' + public_key_string + '\n' + '\n';
-		out_send_socket.writeBytes(msg_to_server);
+		System.out.println("msg is: " + msg_to_server);
+		out_receive_socket.writeBytes(msg_to_server);
 
 		//waiting for server ack
-		reg_response_from_server = in_send_socket.readLine();
-		if(reg_response_from_server == "ERROR 100 Malformed username")
+		System.out.println("waiting for server ack...");
+		String reg_response_from_server = in_receive_socket.readLine();
+		System.out.println("got the response for rcv packet...");
+		System.out.println("response is: " + reg_response_from_server);
+		if(reg_response_from_server == "ERROR 100 Malformed username" || reg_response_from_server == "ERROR 105 username already used")
 		{
 			System.out.println("ERROR 100 Malformed username: " + "Try again with correct username(alphabets and numerals only)");
 			return;
 		}
-		
+		in_receive_socket.readLine();	
+
+		//sending tosend message to server
+		System.out.println("sending tosend message to server...");
+		msg_to_server = "REGISTER TOSEND " + myusername + '\n' + public_key_string + '\n' + '\n';
+		out_send_socket.writeBytes(msg_to_server);
+
+		//waiting for server ack
+		System.out.println("waiting for server ack...");
+		reg_response_from_server = in_send_socket.readLine();
+		System.out.println("Got the response for tosend packet...");
+		System.out.println("response is: " + reg_response_from_server);
+		if(reg_response_from_server == "ERROR 100 Malformed username" || reg_response_from_server == "ERROR 105 username already used")
+		{
+			System.out.println( reg_response_from_server + ": Try again with unique correct username(alphabets and numerals only)");
+			return;
+		}
+		in_send_socket.readLine();		// because of the '\n' used to end the message
+
+
 		System.out.println(myusername + " registered successfully.");
 
 		//creating two threads
