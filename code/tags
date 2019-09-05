@@ -9,6 +9,8 @@ main	/home/dwijesh/Documents/sem5/networks/assns/assn2/Networks-assn-2/code/clie
 out_receive_socket	/home/dwijesh/Documents/sem5/networks/assns/assn2/Networks-assn-2/code/client.java	/^	private DataOutputStream out_receive_socket;$/;"	f	language:Java	class:communication_thread	file:
 out_send_socket	/home/dwijesh/Documents/sem5/networks/assns/assn2/Networks-assn-2/code/client.java	/^	private DataOutputStream out_send_socket;$/;"	f	language:Java	class:communication_thread	file:
 private_key_self	/home/dwijesh/Documents/sem5/networks/assns/assn2/Networks-assn-2/code/client.java	/^	private byte[] private_key_self;$/;"	f	language:Java	class:communication_thread	file:
-receive_port	/home/dwijesh/Documents/sem5/networks/assns/assn2/Networks-assn-2/code/client.java	/^	private static int send_port = 6789, receive_port = 6790;$/;"	f	language:Java	class:client	file:
+receive_port	/home/dwijesh/Documents/sem5/networks/assns/assn2/Networks-assn-2/code/client.java	/^	private static int send_port = 6789, receive_port = 6789;$/;"	f	language:Java	class:client	file:
+ref_private_key	/home/dwijesh/Documents/sem5/networks/assns/assn2/Networks-assn-2/code/client.java	/^	private PrivateKey ref_private_key;$/;"	f	language:Java	class:communication_thread	file:
+ref_public_key	/home/dwijesh/Documents/sem5/networks/assns/assn2/Networks-assn-2/code/client.java	/^	private PublicKey ref_public_key;$/;"	f	language:Java	class:communication_thread	file:
 run	/home/dwijesh/Documents/sem5/networks/assns/assn2/Networks-assn-2/code/client.java	/^	public void run()$/;"	m	language:Java	class:communication_thread
-send_port	/home/dwijesh/Documents/sem5/networks/assns/assn2/Networks-assn-2/code/client.java	/^	private static int send_port = 6789, receive_port = 6790;$/;"	f	language:Java	class:client	file:
+send_port	/home/dwijesh/Documents/sem5/networks/assns/assn2/Networks-assn-2/code/client.java	/^	private static int send_port = 6789, receive_port = 6789;$/;"	f	language:Java	class:client	file:

@@ -1,4 +1,6 @@
 import java.security.KeyPair;
+import java.security.PublicKey;
+import java.security.PrivateKey;
 import java.security.MessageDigest;
 import cryptography.cryptographyExample;
 import java.util.*;
@@ -11,10 +13,13 @@ class communication_thread implements Runnable
 	private BufferedReader in_send_socket;
 	private BufferedReader in_receive_socket;
 	private cryptographyExample crypto_object;
+	private PublicKey ref_public_key;
+	private PrivateKey ref_private_key;
 	private byte[] private_key_self;
 	communication_thread(	DataOutputStream out_send_socket , BufferedReader in_send_socket, 
 				DataOutputStream out_receive_socket, BufferedReader in_receive_socket,
-				cryptographyExample crypto_object, byte[] private_key_self)
+				cryptographyExample crypto_object, byte[] private_key_self, 
+				PublicKey ref_public_key, PrivateKey ref_private_key)
 	{
 		this.out_send_socket = out_send_socket;
 		this.out_receive_socket = out_receive_socket;
@@ -22,6 +27,8 @@ class communication_thread implements Runnable
 		this.in_receive_socket = in_receive_socket;
 		this.crypto_object = crypto_object;
 		this.private_key_self = private_key_self;
+		this.ref_public_key = ref_public_key;
+		this.ref_private_key = ref_private_key;
 	}
 	
 	public void run()
@@ -34,11 +41,7 @@ class communication_thread implements Runnable
 			{
 				while(true)
 				{
-					String str = null;
-					while((str = in_send_socket.readLine()) != null)
-					{
-						if (str.isEmpty()) break;
-					}
+					while(in_send_socket.ready()){	in_send_socket.readLine();}
 					//reading and parsing the user input
 					boolean correctly_parsed = false;
 					String recipient="", message="", public_key_recipient="", msg_to_server="", response_from_server="";
@@ -55,6 +58,7 @@ class communication_thread implements Runnable
 						message = "";	
 						if(user_input.charAt(index) == '@')
 						{
+							index++;
 							for(; index < user_input_length && user_input.charAt(index)!=' '; index++)	recipient += user_input.charAt(index);
 							if(index != 1 && index != user_input_length)
 							{
@@ -74,7 +78,7 @@ class communication_thread implements Runnable
 						System.out.println("waiting for response...");
 						response_from_server = in_send_socket.readLine();
 						System.out.println("got the response...\nresponse is: " + response_from_server);
-						if(response_from_server != "ERROR 104 recipient user not registered")	public_key_recipient = response_from_server.substring(3);
+						if(! response_from_server.equals("ERROR 104 recipient user not registered"))	public_key_recipient = response_from_server.substring(3);
 						else	{ System.out.println("Recipient not registered, try again later or with diff username."); continue;}
 						in_send_socket.readLine();
 						//sending ack to server
@@ -87,26 +91,34 @@ class communication_thread implements Runnable
 					while(!correctly_parsed);
 					
 					// encrypt the message and create a signature
+					System.out.println("encrypting the message...");
 					byte[] encrypted_msg = crypto_object.encrypt(java.util.Base64.getDecoder().decode(public_key_recipient), message.getBytes());
 					MessageDigest md = MessageDigest.getInstance("SHA-256");
+					System.out.println("evaluating the signature");
 					byte[] hash_msg = md.digest(encrypted_msg);
-					byte[] signature = crypto_object.encrypt(private_key_self, hash_msg);
+//					byte[] signature = crypto_object.decrypt(private_key_self, hash_msg);
+					byte[] signature = crypto_object.get_signature(ref_private_key, hash_msg);
 
 					// dispatch message and signature through send packet
 					String encrypted_msg_string = java.util.Base64.getEncoder().encodeToString(encrypted_msg);
+					System.out.println("encrypted message in base64 is: " + encrypted_msg_string);
 					String signature_string = java.util.Base64.getEncoder().encodeToString(signature);
+					System.out.println("signature in base64 is: " + signature_string);
 					int msg_length = encrypted_msg_string.getBytes().length, signature_length = signature_string.getBytes().length;// byte length and string length are different
 					msg_to_server = "SEND " + recipient + '\n' + "Message_length: " + msg_length + '\n' 
 							+ "Signature_length: " + signature_length + '\n' + '\n'
 							+ encrypted_msg_string + '\n' + '\n'
 							+ signature_string + '\n' + '\n';
+					System.out.println("Sending the send packet to server...\nSEND packet is: " + msg_to_server);
 					out_send_socket.writeBytes(msg_to_server);
 
 					// wait for the server response
+					System.out.println("waiting for server response...");
 					response_from_server = in_send_socket.readLine();
-					if(response_from_server == "ERROR 102 Unable to send")
+					System.out.println("got the response...\nresponse is: " + response_from_server);
+					if(response_from_server.equals("ERROR 102 Unable to send"))
 						System.out.println("ERROR 102 Unable to send message to recipient " + recipient);
-					else if(response_from_server == "ERROR 103 Header incomplete")
+					else if(response_from_server.equals("ERROR 103 Header incomplete"))
 						System.out.println("ERROR 103 Header incomplete");
 					else
 						System.out.println("Message sent to recipient " + recipient);
@@ -117,18 +129,18 @@ class communication_thread implements Runnable
 			{
 				while(true)
 				{
-					String str = null;
-					System.out.println("hello");
-					while((str = in_receive_socket.readLine()) != null){}
+					while(in_receive_socket.ready()) { in_receive_socket.readLine();}
 					// waiting for FORWARD message from server
 					String response_from_server = "", msg_to_server = "";
 					response_from_server = in_receive_socket.readLine();
-
+					System.out.println("got a message from other client...\nmessage is: " + response_from_server);
 					// parse the header
 					// checking the first line
 					String sender_username = "";
 					int response_from_server_length = response_from_server.length();
-					if(response_from_server.substring(0, 7) == "FORWARD" && response_from_server_length >= 8)
+					System.out.println("response length is: " + response_from_server_length);
+					System.out.println("bool value: " + response_from_server.substring(0, 7).equals("FORWARD"));
+					if(response_from_server.substring(0, 7).equals("FORWARD") && response_from_server_length >= 8)
 						sender_username = response_from_server.substring(8);
 					else
 					{
@@ -136,11 +148,12 @@ class communication_thread implements Runnable
 						out_receive_socket.writeBytes(msg_to_server);
 						continue;
 					}
+					System.out.println("sender username: " + sender_username);
 					// checking the second line
 					response_from_server = in_receive_socket.readLine();
 					response_from_server_length = response_from_server.length();
 					int message_length;
-					if(response_from_server.substring(0, 16) == "Message_length: " && response_from_server_length >= 16)
+					if(response_from_server.substring(0, 16).equals("Message_length: ") && response_from_server_length >= 16)
 						message_length = Integer.parseInt(response_from_server.substring(16));
 					else
 					{
@@ -148,11 +161,12 @@ class communication_thread implements Runnable
 						out_receive_socket.writeBytes(msg_to_server);
 						continue;
 					}
+					System.out.println("message length is: " + message_length);
 					// checking the third line
 					response_from_server = in_receive_socket.readLine();
 					response_from_server_length = response_from_server.length();
 					int signature_length;
-					if(response_from_server.substring(0,18) == "Signature_length: " && response_from_server_length >= 18)
+					if(response_from_server.substring(0,18).equals("Signature_length: ") && response_from_server_length >= 18)
 						signature_length = Integer.parseInt(response_from_server.substring(18));
 					else
 					{
@@ -160,42 +174,54 @@ class communication_thread implements Runnable
 						out_receive_socket.writeBytes(msg_to_server);
 						continue;
 					}
+					System.out.println("Signature length is: " + signature_length);
 					// getting the message and signature
 					response_from_server = in_receive_socket.readLine();
 					String encrypted_msg_string = in_receive_socket.readLine();	// in base64
 					response_from_server = in_receive_socket.readLine();
 					String signature_string = in_receive_socket.readLine();		// in base64
 					in_receive_socket.readLine();
-
+					System.out.println("encrypted msg and signature is: " + encrypted_msg_string + '\n' + signature_string);
 					// fetching the sender's public key
 					String public_key_sender_string = "";
 					msg_to_server = "GET_PUBLICKEY " + sender_username + '\n' + '\n';
+					System.out.println("fetcging the public key of sender...\nmsg to server is: "+ msg_to_server);
 					out_receive_socket.writeBytes(msg_to_server);
+					System.out.println("waiting for server response...");
 					response_from_server = in_receive_socket.readLine();
-					if(response_from_server != "ERROR 104 recipient user not registered")	public_key_sender_string = response_from_server.substring(3);
+					System.out.println("got the reply: " + response_from_server);
+					if(!response_from_server.equals("ERROR 104 recipient user not registered"))	public_key_sender_string = response_from_server.substring(3);
 					else	{ System.out.println("sender not registered, ignoring this packet."); continue;}
 					//sending ack to server
+					System.out.println("sending ack to server...");
 					msg_to_server = "RECVD_KEY" + '\n' + '\n';
 					out_receive_socket.writeBytes(msg_to_server);
 					in_receive_socket.readLine();
 
 					// signature check
 					// hash of ecncrypted messageString str = null;
+					System.out.println("checking the signature...");
 					MessageDigest md = MessageDigest.getInstance("SHA-256");
 					byte[] hash_msg1 = md.digest(java.util.Base64.getDecoder().decode(encrypted_msg_string));
 					// decrypt the signature with public key of the sender to get hash of encrypted message
-					byte[] hash_msg2 = crypto_object.decrypt(java.util.Base64.getDecoder().decode(public_key_sender_string), java.util.Base64.getDecoder().decode(signature_string));
+//					byte[] hash_msg2 = crypto_object.encrypt(java.util.Base64.getDecoder().decode(public_key_sender_string), java.util.Base64.getDecoder().decode(signature_string));
+					boolean verify = crypto_object.verify_signature(java.util.Base64.getDecoder().decode(signature_string), 
+											java.util.Base64.getDecoder().decode(public_key_sender_string), 
+											hash_msg1);
+					System.out.println("verify result is: " + verify);
 					// checking for equality
-					if(Arrays.equals(hash_msg1, hash_msg2))
+					if(verify)
 					{
 						//acknowledging server for received message
 						msg_to_server = "RECEIVED " + sender_username + '\n' + '\n';
 						out_receive_socket.writeBytes(msg_to_server);
 						// decrypting the message
 						byte[] decrypted_message = crypto_object.decrypt(private_key_self, java.util.Base64.getDecoder().decode(encrypted_msg_string));
-						String decrypted_message_string = java.util.Base64.getEncoder().encodeToString(decrypted_message);
+
+//						String decrypted_message_string = java.util.Base64.getEncoder().encodeToString(decrypted_message);
+						String decrypted_message_string = new String(decrypted_message);
 						//show it to user
-						System.out.println(sender_username + ": " + decrypted_message);
+						System.out.println(sender_username + ": " + decrypted_message_string);
 					}
 					else
 					{
@@ -209,20 +235,22 @@ class communication_thread implements Runnable
 		}
 		catch(Exception e)
 		{
-			System.out.println("Exception cought\n");
+			System.out.println(e);
 		}
 	}
 }
 public class client
 {
-	private static int send_port = 6789, receive_port = 6790;
+	private static int send_port = 6789, receive_port = 6789;
 	public static void main(String[] args) throws Exception
 	{
 		// Generate public private key pair
 		cryptographyExample crypto_object = new cryptographyExample();
 		KeyPair generateKeyPair = crypto_object.generateKeyPair();
-		byte[] public_key = generateKeyPair.getPublic().getEncoded();
-		byte[] private_key = generateKeyPair.getPrivate().getEncoded();
+		PublicKey ref_public_key = generateKeyPair.getPublic();
+		PrivateKey ref_private_key = generateKeyPair.getPrivate();
+		byte[] public_key = ref_public_key.getEncoded();
+		byte[] private_key = ref_private_key.getEncoded();
 		
 		// Reading commandline inputs: username server_ip_addr
 		if(args.length < 2)
@@ -254,7 +282,7 @@ public class client
 		String reg_response_from_server = in_receive_socket.readLine();
 		System.out.println("got the response for rcv packet...");
 		System.out.println("response is: " + reg_response_from_server);
-		if(reg_response_from_server == "ERROR 100 Malformed username" || reg_response_from_server == "ERROR 105 username already used")
+		if(reg_response_from_server.equals("ERROR 100 Malformed username") || reg_response_from_server.equals("ERROR 105 username already used"))
 		{
 			System.out.println("ERROR 100 Malformed username: " + "Try again with correct username(alphabets and numerals only)");
 			return;
@@ -271,7 +299,7 @@ public class client
 		reg_response_from_server = in_send_socket.readLine();
 		System.out.println("Got the response for tosend packet...");
 		System.out.println("response is: " + reg_response_from_server);
-		if(reg_response_from_server == "ERROR 100 Malformed username" || reg_response_from_server == "ERROR 105 username already used")
+		if(reg_response_from_server.equals("ERROR 100 Malformed username") || reg_response_from_server.equals("ERROR 105 username already used"))
 		{
 			System.out.println( reg_response_from_server + ": Try again with unique correct username(alphabets and numerals only)");
 			return;
@@ -284,7 +312,7 @@ public class client
 		//creating two threads
 		for(int i=0; i<2; i++)
 		{
-			communication_thread communication = new communication_thread(out_send_socket, in_send_socket, out_receive_socket, in_receive_socket, crypto_object, private_key);
+			communication_thread communication = new communication_thread(out_send_socket, in_send_socket, out_receive_socket, in_receive_socket, crypto_object, private_key, ref_public_key, ref_private_key);
 			Thread thread = new Thread(communication);
 			thread.start();
 		}

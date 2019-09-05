@@ -15,11 +15,10 @@ import java.security.Signature;
 import java.security.SecureRandom;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.security.spec.EncodedKeySpec;
 
 import javax.crypto.Cipher;
 
-public class cryptographyExample {
+public class dummy_cryptographyExample {
 
     private static final String ALGORITHM = "RSA";
     private static final String signature_algo = "SHA256WithRSA";
@@ -62,32 +61,6 @@ public class cryptographyExample {
         KeyPair generateKeyPair = keyGen.generateKeyPair();
         return generateKeyPair;
     }
-	public static PrivateKey get_ref_private_key(byte[] encoded_private_key)
-	{
-		try
-		{
-			EncodedKeySpec private_key_spec = new PKCS8EncodedKeySpec(encoded_private_key);
-			
-			KeyFactory generator = KeyFactory.getInstance(ALGORITHM);
-			PrivateKey ref_private_key = generator.generatePrivate(private_key_spec);
-			return ref_private_key;
-		}
-		catch(Exception e){ System.out.println(e);}
-		return null;
-	}
-	public static PublicKey get_ref_public_key(byte[] encoded_public_key)
-	{
-		try
-		{
-			
-			KeyFactory generator = KeyFactory.getInstance(ALGORITHM);
-			EncodedKeySpec public_key_spec = new X509EncodedKeySpec(encoded_public_key);
-			PublicKey ref_public_key = generator.generatePublic(public_key_spec);
-			return ref_public_key;
-		}
-		catch(Exception e){ System.out.println(e);}
-		return null;
-	}
     public static byte[] get_signature(PrivateKey ref_private_key, byte[] data)
     { 
 	Signature signature;
@@ -106,11 +79,10 @@ public class cryptographyExample {
 	catch(Exception e){ System.out.println(e);}
 	return null;	
     }
-    public static boolean verify_signature(byte[] sig1, byte[] public_key, byte[] data)
+    public static boolean verify_signature(byte[] sig1, PublicKey ref_public_key, byte[] data)
     {
 	try
 	{
-		PublicKey ref_public_key = get_ref_public_key(public_key);
 		Signature sig2 = Signature.getInstance("NONEWithRSA");
 		sig2.initVerify(ref_public_key);
 		sig2.update(data);
@@ -118,26 +90,26 @@ public class cryptographyExample {
 	}
 	catch(Exception e){ System.out.println(e);}
 	return false;
-    }	
+    }
 
-//	public static void main(String[] args) throws Exception 
-//	{
-//		KeyPair generateKeyPair = generateKeyPair();
-//		PublicKey ref_public_key = generateKeyPair.getPublic() ;
-//		PrivateKey ref_private_key = generateKeyPair.getPrivate();
-//		byte[] publicKey = ref_public_key.getEncoded();
-//		byte[] privateKey = ref_private_key.getEncoded();
+	public static void main(String[] args) throws Exception 
+	{
+		KeyPair generateKeyPair = generateKeyPair();
+		PublicKey ref_public_key = generateKeyPair.getPublic() ;
+		PrivateKey ref_private_key = generateKeyPair.getPrivate();
+		byte[] publicKey = ref_public_key.getEncoded();
+		byte[] privateKey = ref_private_key.getEncoded();
 
-//		String msg1 = "hello";
-//		String msg2 = "hello1";
-//		byte[] sig1 = get_signature(ref_private_key, msg1.getBytes());
-//		boolean verify = verify_signature(sig1, ref_public_key, msg2.getBytes());
-//		System.out.println(verify);
+		String msg1 = "hello";
+		String msg2 = "hello1";
+		byte[] sig1 = get_signature(ref_private_key, msg1.getBytes());
+		boolean verify = verify_signature(sig1, ref_public_key, msg2.getBytes());
+		System.out.println(verify);
 //		byte[] encryptedData = encrypt(publicKey,
 //			"hi there".getBytes());
 
 //		byte[] decryptedData = decrypt(privateKey, encryptedData);
-//	}
+	}
 
 }
 
