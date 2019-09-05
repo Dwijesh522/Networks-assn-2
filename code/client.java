@@ -30,7 +30,26 @@ class communication_thread implements Runnable
 		this.ref_public_key = ref_public_key;
 		this.ref_private_key = ref_private_key;
 	}
-	
+	// read the message upto certain bytes
+	// only fro un-encrypted message
+	public static String read_message(BufferedReader bf, int message_length)
+	{
+		try
+		{
+			String message="";
+			int byte_counter=0;
+			while(byte_counter < message_length)
+			{
+				String temp_string = bf.readLine();
+				message += temp_string + '\n';
+				byte_counter += temp_string.getBytes().length;
+			}
+			message = message.substring(0, message.length()-1);
+			return message;
+		}
+		catch(Exception e){System.out.println(e);}
+		return "";
+	}
 	public void run()
 	{
 		try
@@ -50,12 +69,13 @@ class communication_thread implements Runnable
 					{
 						// reading input from the user
 						Scanner input_scanner = new Scanner(System.in);
-						String user_input = input_scanner.nextLine();
-						
+						String user_input = "", user_line="";
+						while((user_line=input_scanner.nextLine()).length() != 0)	user_input += user_line + '\n';
+						System.out.println("user input is: " + user_input);
 						//parsing the user input
 						int index=0, user_input_length = user_input.length();
 						recipient = "";
-						message = "";	
+						message = "";
 						if(user_input.charAt(index) == '@')
 						{
 							index++;
@@ -63,7 +83,8 @@ class communication_thread implements Runnable
 							if(index != 1 && index != user_input_length)
 							{
 								index++;
-								for(; index < user_input_length; index++)	message+=user_input.charAt(index);
+//								for(; index < user_input_length; index++)	message+=user_input.charAt(index);
+								message = user_input.substring(index);
 							}
 							else	{ System.out.println("invalid syntax, try again"); continue;}
 						}
@@ -177,7 +198,8 @@ class communication_thread implements Runnable
 					System.out.println("Signature length is: " + signature_length);
 					// getting the message and signature
 					response_from_server = in_receive_socket.readLine();
-					String encrypted_msg_string = in_receive_socket.readLine();	// in base64
+//					String encrypted_msg_string = in_receive_socket.readLine();	// in base64
+					String encrypted_msg_string = read_message(in_receive_socket, message_length);
 					response_from_server = in_receive_socket.readLine();
 					String signature_string = in_receive_socket.readLine();		// in base64
 					in_receive_socket.readLine();
@@ -235,7 +257,8 @@ class communication_thread implements Runnable
 		}
 		catch(Exception e)
 		{
-			System.out.println(e);
+			System.out.println("error: " + e);
+			return;
 		}
 	}
 }
