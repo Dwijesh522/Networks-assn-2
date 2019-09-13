@@ -2,42 +2,45 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.lang.Thread;
-import hashtabledata.HashTableData;
 public class Serverthread implements Runnable
 {
   Socket connectionSocket;
   BufferedReader inFromClient;
   DataOutputStream outToClient;
-  boolean send_thread;
   Hashtable < String, HashTableData> table;
-  public Serverthread(Hashtable < String, HashTableData> table, Socket connectionSocket, BufferedReader inFromClient, DataOutputStream outToClient, boolean send_thread)
+  int mode;
+  public Serverthread(int mode, Hashtable < String, HashTableData> table, Socket connectionSocket, BufferedReader inFromClient, DataOutputStream outToClient)
   {
     this.table = table;
     this.connectionSocket = connectionSocket;
     this.inFromClient = inFromClient;
     this.outToClient = outToClient;
-    this.send_thread = send_thread;
+    this.mode = mode;
   }
   public void run() // public
   {
-    try
+    if(mode <=3 && mode >= 1)
     {
-      if(send_thread)
+      String reg_username = null, reg_pubkey = null;
+      String line = null;
+      String[] line_split;
+      try
       {
-        String line;
-        String[] line_split;
         line = inFromClient.readLine();
         line_split = line.split(" ");
         if(line_split[0].equals("REGISTER"))
         {
-          String reg_username = line_split[2];
+          reg_username = line_split[2];
+          System.out.println(reg_username);
           if(!check_username(reg_username))
           {
             outToClient.writeBytes("ERROR 100 Malformed username\n\n");
+            System.out.println("Register send message discarded - invalid username");
             connectionSocket.close();
             return;
           }
-          byte[] reg_pubkey = Base64.getDecoder().decode(inFromClient.readLine());
+          if(mode != 1)
+            reg_pubkey = (inFromClient.readLine());
           inFromClient.readLine(); //In order to parse the extra new line character added at the end of message
           //WRITING TO HASHTABLE INCOMPLETE
           if(line_split[1].equals("TOSEND"))
@@ -48,8 +51,8 @@ public class Serverthread implements Runnable
               if(temp_data.get_send_socket() != null)
               {
                 outToClient.writeBytes("ERROR 105 username already used\n\n");
+                System.out.println("Register send message discarded - username already exists");
                 connectionSocket.close();
-                table.remove(reg_username);
                 return;
               }
               else
@@ -63,41 +66,41 @@ public class Serverthread implements Runnable
               table.put(reg_username, temp);
             }
             outToClient.writeBytes("REGISTERED TOSEND "+reg_username+'\n'+'\n');
+            System.out.println(reg_username+" Registered for send socket");
             while(true)
             {
               line = inFromClient.readLine();
-              while(line != null)
-              {
-                line = inFromClient.readLine();
-              }
               line_split = line.split(" ");
               if(line_split[0].equals("GET_PUBLICKEY"))
               {
+                System.out.println("Request for public key received at server");
                 String req_username = line_split[1];
                 String encoded_pubkey = fetch_publickey(req_username);
                 if(encoded_pubkey == null)
                 {
-                  outToClient.writeBytes("ERROR 104 recepient user not registered\n\n");
+                  outToClient.writeBytes("ERROR 104 recipient user not registered\n\n");
+                  System.out.println("request for public key of user who's not registered yet");
+                  /*
+                  while(inFromClient.ready())
+                  {
+                    inFromClient.readLine();
+                  }
                   continue;
+                  */
+                  connectionSocket.close();
+                  return;
                 }
                 inFromClient.readLine(); // end GET_PUBLICKEY message
                 outToClient.writeBytes("OK "+encoded_pubkey+'\n'+'\n');
+                System.out.println("Sent the public key requested by the sender");
                 line = inFromClient.readLine();
                 if(line.equals("RECVD_KEY"))
                 inFromClient.readLine(); // end RECVD_KEY msg
+                System.out.println("Sender acknowledged public key sent by server");
                 line = inFromClient.readLine(); // to read the next input line from client
                 line_split = line.split(" ");
               }
               //NO ERROR MESSAGE IS SENT WHEN THE SENDER CLIENT DOESN'T ASK FOR PUBLIC KEY
-              /*
-              else
-              {
-                outToClient.writeBytes("generic error\n\n");
-                connectionSocket.close();
-                table.remove(reg_username);
-                return;
-              }
-              */
               if(line_split[0].equals("SEND"))
               {
                 String recepient_username;
@@ -107,58 +110,107 @@ public class Serverthread implements Runnable
                   recepient_username = line_split[1];
                   line = inFromClient.readLine();
                   line_split = line.split(" ");
-                  if(line_split[0].equals("Message_length:"))
+                  if(line_split[0].equals("Content-length:"))
                     message_length = Integer.parseInt(line_split[1]);
                   else
                   {
                     outToClient.writeBytes("ERROR 103 Header incomplete\n\n");
-                    System.out.println("Message discarded");
+                    System.out.println("Send Message discarded");
+                    /*
+                    while(inFromClient.ready())
+                    {
+                      inFromClient.readLine();
+                    }
                     continue;
+                    */
+                    connectionSocket.close();
+                    return;
                   }
-                  line = inFromClient.readLine();
-                  line_split = line.split(" ");
-                  if(line_split[0].equals("Signature_length:"))
-                    signature_length = Integer.parseInt(line_split[1]);
-                  else
+                  if(mode == 3)
                   {
-                    outToClient.writeBytes("ERROR 103 Header incomplete\n\n");
-                    System.out.println("Message discarded");
-                    continue;
+                    line = inFromClient.readLine();
+                    line_split = line.split(" ");
+                    if(line_split[0].equals("Signature_length:"))
+                      signature_length = Integer.parseInt(line_split[1]);
+                    else
+                    {
+                      outToClient.writeBytes("ERROR 103 Header incomplete\n\n");
+                      System.out.println("Send Message discarded");
+                      /*
+                      while(inFromClient.ready())
+                      {
+                        inFromClient.readLine();
+                      }
+                      continue;
+                      */
+                      connectionSocket.close();
+                      return;
+                    }
                   }
                 }
                 catch(NumberFormatException e)
                 {
                   outToClient.writeBytes("ERROR 103 Header incomplete\n\n");
-                  System.out.println("Message discarded");
+                  System.out.println("Send Message discarded");
+                  /*
+                  while(inFromClient.ready())
+                  {
+                    inFromClient.readLine();
+                  }
                   continue;
+                  */
+                  connectionSocket.close();
+                  return;
                 }
                 inFromClient.readLine(); //end of headers
-                String message = inFromClient.readLine().substring(0,message_length);
+                //String message = inFromClient.readLine().substring(0,message_length);
+                String message = read_string(inFromClient, message_length);
+                inFromClient.readLine();
                 inFromClient.readLine(); // extra \n character
-                String signature = inFromClient.readLine().substring(0,signature_length);
-                inFromClient.readLine(); //end \n character
+                //String signature = inFromClient.readLine().substring(0,signature_length);
+                if(mode == 3)
+                {
+                  String signature = read_string(inFromClient, signature_length);
+                  inFromClient.readLine(); //end \n character
+                  inFromClient.readLine();
+                }
                 System.out.println("Message received at server. Beginning to forward");
                 //forward(message, signature, recepient_username, message_length, signature_length, reg_username);
                 Socket comm_socket = table.get(recepient_username).get_recv_socket();
                 BufferedReader inFromRecpt = new BufferedReader(new InputStreamReader(comm_socket.getInputStream()));
                 DataOutputStream outToRecpt = new DataOutputStream(comm_socket.getOutputStream());
-                outToRecpt.writeBytes("FORWARD "+reg_username+'\n'+"Message_length: "+message_length+'\n'+
-                                      "Signature_length: "+signature_length + '\n' +'\n' + message + '\n' + '\n'
-                                      + signature + '\n' + '\n');
+                if(mode == 3)
+                  outToRecpt.writeBytes("FORWARD "+reg_username+'\n'+"Content-length: "+message_length+'\n'+
+                                        "Signature_length: "+signature_length + '\n' +'\n' + message + '\n' + '\n'
+                                        +signature + '\n' + '\n');
+                else
+                outToRecpt.writeBytes("FORWARD "+reg_username+'\n'+"Content-length: "+message_length+'\n'+
+                                      '\n' + message + '\n' + '\n');
                 line = inFromRecpt.readLine();
                 line_split = line.split(" ");
                 if(line_split[0].equals("GET_PUBLICKEY"))
                 {
+                  System.out.println("Request for public key received at server");
                   String req_username = line_split[1];
                   String encoded_pubkey = fetch_publickey(req_username);
                   if(encoded_pubkey == null)
                   {
-                    outToRecpt.writeBytes("ERROR 104 recepient user not registered\n\n");
+                    outToRecpt.writeBytes("ERROR 104 recipient user not registered\n\n");
                     outToClient.writeBytes("ERROR 102 Unable to send\n\n");
+                    System.out.println("Request for public key of user who's not registered yet. Hence unable to send message");
+                    /*
+                    while(inFromClient.ready())
+                    {
+                      inFromClient.readLine();
+                    }
                     continue;
+                    */
+                    connectionSocket.close();
+                    return;
                   }
                   inFromRecpt.readLine(); // end GET_PUBLICKEY message
                   outToRecpt.writeBytes("OK "+encoded_pubkey+'\n'+'\n');
+                  System.out.println("Sent the public key requested by the sender");
                   line = inFromRecpt.readLine();
                   if(line.equals("RECVD_KEY"))
                   inFromRecpt.readLine(); // end RECVD_KEY msg
@@ -166,16 +218,24 @@ public class Serverthread implements Runnable
                   //read next message
                   line = inFromRecpt.readLine();
                   line_split = line.split(" ");
-
                 }
                 else if(line.equals("ERROR 103 Header incomplete"))
                 {
                   outToClient.writeBytes("ERROR 102 Unable to send\n\n");
+                  System.out.println("Recpt says header incomplete in FORWARD message. Hence unable to send message");
+                  connectionSocket.close();
+                  return;
+                  /*
                   inFromRecpt.readLine(); // end error message
                   //read next message
                   line = inFromRecpt.readLine();
                   line_split = line.split(" ");
+                  while(inFromClient.ready())
+                  {
+                    inFromClient.readLine();
+                  }
                   continue;
+                  */
                 }
                 if(line_split[0].equals("RECEIVED") && line_split[1].equals(reg_username))
                 {
@@ -185,31 +245,36 @@ public class Serverthread implements Runnable
                 else
                 {
                   outToClient.writeBytes("ERROR 102 Unable to send\n\n");
+                  System.out.println("Server is unable to send message due to lack of acknowledgement from recpt");
+                  connectionSocket.close();
+                  return;
+                  /*
+                  while(inFromClient.ready())
+                  {
+                    inFromClient.readLine();
+                  }
                   continue;
+                  */
                 }
               }
               else
               {
                 outToClient.writeBytes("generic error\n\n");
+                System.out.println("Request discarded due to incorrect syntax");
+                //closing socket
+                connectionSocket.close();
+                return;
+                /*
+                while(inFromClient.ready())
+                {
+                  inFromClient.readLine();
+                }
                 continue;
+                */
               }
             }
           }
-          else outToClient.writeBytes("ERROR 101 No user registered\n\n");
-        }
-        else outToClient.writeBytes("ERROR 101 No user registered\n\n");
-      }
-      else
-      {
-        String line = inFromClient.readLine();
-        String[] line_split = line.split(" ");
-        if(line_split[0].equals("REGISTER"))
-        {
-          String reg_username = line_split[2];
-          if(!check_username(reg_username)) outToClient.writeBytes("ERROR 100 Malformed username\n\n");
-          byte[] reg_pubkey = Base64.getDecoder().decode(inFromClient.readLine());
-          inFromClient.readLine(); //In order to parse the extra new line character added at the end of message
-          if(line_split[1].equals("TORECV"))
+          else if(line_split[1].equals("TORECV"))
           {
             //WRITING TO HASHTABLE
             if(table.containsKey(reg_username))
@@ -218,8 +283,8 @@ public class Serverthread implements Runnable
               if(temp_data.get_recv_socket() != null)
               {
                 outToClient.writeBytes("ERROR 105 username already used\n\n");
+                System.out.println("Register recv message discarded - username already exists");
                 connectionSocket.close();
-                table.remove(reg_username);
                 return;
               }
               else
@@ -233,162 +298,48 @@ public class Serverthread implements Runnable
               table.put(reg_username, temp);
             }
             outToClient.writeBytes("REGISTERED TORECV "+reg_username+'\n'+'\n');
+            System.out.println(reg_username + " Registered for recv socket");
           }
-          else outToClient.writeBytes("ERROR 101 No user registered\n\n");
-        }
-        else outToClient.writeBytes("ERROR 101 No user registered\n\n");
-      }
-    }
-    catch(Exception e12)
-    {
-      System.out.println("CATCH_ERROR");
-    }
-  }
-  /*
-  void forward(String message, String signature, String recepient_username,int message_length, int signature_length, String sender_username)
-  {
-    try
-    {
-      Socket comm_socket = table.get(recepient_username).get_recv_socket();
-      BufferedReader inFromRecpt = new BufferedReader(new InputStreamReader(comm_socket.getInputStream()));
-      DataOutputStream outToRecpt = new DataOutputStream(comm_socket.getOutputStream());
-      outToRecpt.writeBytes("FORWARD "+recepient_username+'\n'+"Message_length: "+message_length+'\n'+
-                            "Signature_length: "+signature_length + '\n' + message + '\n' + '\n'
-                            + signature + '\n' + '\n');
-      try
-      {
-        String line = inFromRecpt.readLine();
-        String[] line_split = line.split(" ");
-        if(line_split[0].equals("GET_PUBLICKEY"))
-        {
-          String req_username = line_split[2];
-          String encoded_pubkey = fetch_publickey(req_username);
-          if(encoded_pubkey == null)
+          else
           {
-            outToClient.writeBytes("ERROR 104 recepient user not registered\n\n");
+            outToClient.writeBytes("ERROR 101 No user registered\n\n");
+            System.out.println("Register message discarded - incorrect register message format");
             connectionSocket.close();
-            table.remove(reg_username);
             return;
           }
-          outToRecpt.writeBytes("OK "+encoded_pubkey+'\n'+'\n');
-          inFromRecpt.readLine(); // end GET_PUBLICKEY message
-          line = inFromRecpt.readLine();
-          if(line.equals("RECVD_KEY"))
-          inFromRecpt.readLine(); // end RECVD_KEY msg
         }
         else
         {
-          outToClient.writeBytes("generic error\n\n");
-          comm_socket.close();
-          return;
-          //Additional handling in run function
-        }
-        line = inFromRecpt.readLine();
-        line_split = line.split(" ");
-        if(line_split[0].equals("RECEIVED") && line_split[1].equals(sender_username))
-        {
-          outToClient.writeBytes("SENT "+recepient_username+'\n'+'\n');
+          outToClient.writeBytes("ERROR 101 No user registered\n\n");
+          System.out.println("Register discarded - communication before registration");
+          connectionSocket.close();
           return;
         }
       }
       catch(Exception e12)
       {
-        System.out.println("CATCH_ERROR");
+        //Assuming the error is caught only when client is closed
+        try{connectionSocket.close();} catch(Exception e) { System.out.println(reg_username +"- socket closed");}
+        if(reg_username != null)
+        {
+          if(table.containsKey(reg_username))
+          {
+            table.remove(reg_username);
+          }
+        }
+        System.out.println(reg_username+ " had closed");
+        return;
       }
     }
-    catch(Exception e)
-      {outToClient.writeBytes("ERROR 102 Unable to send\n\n");}
-    //close socket?
-    return;
   }
-  */
+
   String fetch_publickey(String req_username) // Base64
   {
     if(!table.containsKey(req_username)) return null;
     HashTableData temp_data = table.get(req_username);
-    String publickey = Base64.getEncoder().encodeToString(temp_data.get_public_key());
+    String publickey = (temp_data.get_public_key());
     return publickey;
   }
-  /*
-//ERROR messages
-  void error101()
-  {
-    try
-    {
-      outToClient.writeBytes("ERROR 101 No user registered\n\n");
-    }
-    catch(Exception e12)
-    {
-      System.out.println("CATCH_ERROR");
-    }
-  }
-  void error100()
-  {
-    try
-    {
-      outToClient.writeBytes("ERROR 100 Malformed username\n\n");
-    }
-    catch(Exception e12)
-    {
-      System.out.println("CATCH_ERROR");
-    }
-  }
-  void error102()
-  {
-    try
-    {
-      outToClient.writeBytes("ERROR 102 Unable to send\n\n");
-    }
-    catch(Exception e12)
-    {
-      System.out.println("CATCH_ERROR");
-    }
-  }
-  void error103()
-  {
-    try
-    {
-      outToClient.writeBytes("ERROR 103 Header incomplete\n\n");
-    }
-    catch(Exception e12)
-    {
-      System.out.println("CATCH_ERROR");
-    }
-  }
-  void error104()
-  {
-    try
-    {
-      outToClient.writeBytes("ERROR 104 recepient user not registered\n\n");
-    }
-    catch(Exception e12)
-    {
-      System.out.println("CATCH_ERROR");
-    }
-  }
-  void error105()
-  {
-    try
-    {
-      outToClient.writeBytes("ERROR 105 username already used\n\n");
-    }
-    catch(Exception e12)
-    {
-      System.out.println("CATCH_ERROR");
-    }
-  }
-  void gen_error()
-  {
-    try
-    {
-      outToClient.writeBytes("generic error\n\n");
-    }
-    catch(Exception e12)
-    {
-      System.out.println("CATCH_ERROR");
-    }
-  }
-  */
   //checking USERNAME format
   boolean check_username(String str)
   {
@@ -408,6 +359,23 @@ public class Serverthread implements Runnable
       if(!temp_bool) return false;
     }
     return true;
+  }
+
+  String read_string(BufferedReader bf, int len)
+  {
+    try
+    {
+      char[] temp = new char[len];
+      bf.read(temp,0,len);
+      String res = new String(temp);
+      return res;
+    }
+    catch(Exception e)
+    {
+      System.out.println(e);
+      System.out.println("Exception caught in read_string function");
+      return null;
+    }
   }
 /*
   public static void main(String[] argv)
