@@ -45,7 +45,7 @@ class communication_thread implements Runnable
 			{
 				String temp_string = bf.readLine();
 				message += temp_string + '\n';
-				byte_counter += temp_string.getBytes().length;
+				byte_counter += temp_string.getBytes().length+1;
 			}
 			message = message.substring(0, message.length()-1);
 			return message;
