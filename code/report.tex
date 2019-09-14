@@ -38,6 +38,7 @@
 \section{Cases Handled}
 \begin{enumerate}
     \item User can send \textbf{multiple lines} in one go.
+    \item \textbf{User already registered:} Let us say $user_{1}$ is online. If any other client will try to register with same user id $user_{1}$ then server will reject the connection request and will close all the sockets. User will be notified with a message that user id already registered, use other user id.
     \item \textbf{Partial socket closing:} Let us say $\alpha$ wants to send packet to $\beta$. $\alpha$ will send SEND packet to Server. Server finds that there is no issue with header. Server sends FORWARD packet to $\beta$. Now $\beta$ finds that header is incomplete. This implies that there is something wrong with $\beta$\'s format checker for FORWARD packet. So any FORWARD packet it is going to receive, will fail to parse. \textbf{So the server will close the receive socket but server will keep send socket open for $\beta$. Now $\beta$ can send the packets but can not receive the packets.}
 \end{enumerate}{}
 %-----------------------------------------------------------------------
