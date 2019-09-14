@@ -1,15 +1,17 @@
-Execute following command on terminal:
+How to run server-client applications:
 
-	export CLASSPATH=.:/	
-	export CLASSPATH=.:/cryptography
+	Execute following command on terminal:
 
-Execute following command on terminal to compile different java files:
+		export CLASSPATH=.:/	
+		export CLASSPATH=.:/cryptography
 
-	javac Serverthread.java
-	javac Server.java
-	javac client.java
+	Execute following command on terminal to compile different java files:
 
-Execute following command on terminal to run the server and client on same localhost with mode 1(change the parameters accordingly):
+		javac Serverthread.java
+		javac Server.java
+		javac client.java
 
-	java Server 1
-	java client myuserid 127.0.0.1 1
+	Execute following command on terminal to run the server and client on same localhost with mode 1(change the parameters accordingly):
+
+		java Server 1
+		java client myuserid 127.0.0.1 1
