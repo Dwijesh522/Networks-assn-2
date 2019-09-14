@@ -19,6 +19,7 @@ main	/home/dwijesh/Documents/sem5/networks/assns/assn2/Networks-assn-2/code/clie
 main	/home/dwijesh/Documents/sem5/networks/assns/assn2/Networks-assn-2/code/Server.java	/^  public static void main(String argv[]) \/\/throws Exception$/;"	m	language:Java	class:Server
 mode	/home/dwijesh/Documents/sem5/networks/assns/assn2/Networks-assn-2/code/Serverthread.java	/^  int mode;$/;"	f	language:Java	class:Serverthread
 mode_of_communication	/home/dwijesh/Documents/sem5/networks/assns/assn2/Networks-assn-2/code/client.java	/^	int mode_of_communication;$/;"	f	language:Java	class:communication_thread
+myusername	/home/dwijesh/Documents/sem5/networks/assns/assn2/Networks-assn-2/code/client.java	/^	String myusername;$/;"	f	language:Java	class:communication_thread
 outToClient	/home/dwijesh/Documents/sem5/networks/assns/assn2/Networks-assn-2/code/Serverthread.java	/^  DataOutputStream outToClient;$/;"	f	language:Java	class:Serverthread
 out_receive_socket	/home/dwijesh/Documents/sem5/networks/assns/assn2/Networks-assn-2/code/client.java	/^	private DataOutputStream out_receive_socket;$/;"	f	language:Java	class:communication_thread	file:
 out_send_socket	/home/dwijesh/Documents/sem5/networks/assns/assn2/Networks-assn-2/code/client.java	/^	private DataOutputStream out_send_socket;$/;"	f	language:Java	class:communication_thread	file:
