@@ -231,6 +231,15 @@ public class Serverthread implements Runnable
                   continue;
                 }
               }
+              //UNREGISTER
+              if(line_split[0].equals("UNREGISTER"))
+              {
+                reg_username = line_split[1];
+                inFromClient.readLine(); //end message
+                table.remove(reg_username);
+                System.out.println(reg_username+" unregistered");
+                return;
+              }
               else
               {
                 outToClient.writeBytes("generic error\n\n");
@@ -274,10 +283,6 @@ public class Serverthread implements Runnable
             connectionSocket.close();
             return;
           }
-        }
-        else if(line_split[0].equals("UNREGISTER"))
-        {
-          reg_username = line_split[1];
         }
         else
         {
