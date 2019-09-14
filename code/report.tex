@@ -30,5 +30,15 @@
 \begin{document}
 \maketitle
 %-----------------------------------------------------------------------
+\section{Extensions}
+    \subsection{User may disconnect arbitrarily by pressing Ctrl-C. How will you deal with such a scenario?}
+        $<$ Your ans$>$
+    \subsection{How would you extend the client applications to deal with offline users?}
+    We can maintain a hash table. Hash table will be indexed with user id and each of its entry will contain list of pending messages to that user id. Let us say $user_{1}$ wants to send message to $user_{2}$. $user_{2}$ is offline. So the server can insert the message in the hash table(using $user_{2}$ as index). Now after some time $user_{2}$ becomes online. $user_{2}$ will first send TOSEND and TORECV message to the server. On receiving these packets server will check if there is any list of pending messages for $user_{2}$ entry in hash table or not. If there is then the server will send the messages to $user_{2}$. This is how we can extend our client application to deal with offline users.
+\section{Cases Handled}
+\begin{enumerate}
+    \item User can send \textbf{multiple lines} in one go.
+    \item \textbf{Partial socket closing:} Let us say $\alpha$ wants to send packet to $\beta$. $\alpha$ will send SEND packet to Server. Server finds that there is no issue with header. Server sends FORWARD packet to $\beta$. Now $\beta$ finds that header is incomplete. This implies that there is something wrong with $\beta$\'s format checker for FORWARD packet. So any FORWARD packet it is going to receive, will fail to parse. \textbf{So the server will close the receive socket but server will keep send socket open for $\beta$. Now $\beta$ can send the packets but can not receive the packets.}
+\end{enumerate}{}
 %-----------------------------------------------------------------------
 \end{document}
