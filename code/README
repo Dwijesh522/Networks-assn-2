@@ -1,17 +1,20 @@
 How to run server-client applications:
 
 	Execute following command on terminal:
-
 		export CLASSPATH=.:/	
 		export CLASSPATH=.:/cryptography
 
 	Execute following command on terminal to compile different java files:
 
-		javac Serverthread.java
-		javac Server.java
-		javac client.java
+		javac Server.java Serverthread.java HashTableData.java
+		javac client.java cryptographyExample.java
 
-	Execute following command on terminal to run the server and client on same localhost with mode 1(change the parameters accordingly):
-
-		java Server 1
-		java client myuserid 127.0.0.1 1
+	Execute following command on terminal to run the server and client on same localhost with mode = 1/2/3(change the parameters accordingly):
+	
+		java Server mode
+		java client myuserid ip_address mode
+	
+	In the above commands,
+`	mode		:	1 -> unencrypted, 2 -> encrypted without signatures, 3 -> encrypted with signatures
+	myuserid	:	user_id of the user
+	ip_address	:	ip_address of the server
