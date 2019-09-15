@@ -6,8 +6,7 @@ How to run server-client applications:
 
 	Execute following command on terminal to compile different java files:
 
-		javac HashTableData.java Serverthread.java Server.java  
-		javac cryptographyExample.java client.java
+		javac HashTableData.java Serverthread.java Server.java  client.java
 
 	Execute following command on terminal to run the server and client on server with mode = 1/2/3(change the parameters accordingly):
 	
