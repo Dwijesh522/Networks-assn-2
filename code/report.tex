@@ -32,7 +32,7 @@
 %-----------------------------------------------------------------------
 \section{Extensions}
     \subsection{User may disconnect arbitrarily by pressing Ctrl-C. How will you deal with such a scenario?}
-        $<$ Your ans$>$
+    The user can unregister by either sending a  message to unregister or by pressing Ctrl-C. If the client application is closed (Ctrl-C), then exception occurs whenever socket is accessed in the server thread corresponding to the client. This exception is caught and the user is unregistered and then the thread is closed.
     \subsection{How would you extend the client applications to deal with offline users?}
     We can maintain a hash table. Hash table will be indexed with user id and each of its entry will contain list of pending messages to that user id. Let us say $user_{1}$ wants to send message to $user_{2}$. $user_{2}$ is offline. So the server can insert the message in the hash table(using $user_{2}$ as index). Now after some time $user_{2}$ becomes online. $user_{2}$ will first send TOSEND and TORECV message to the server. On receiving these packets server will check if there is any list of pending messages for $user_{2}$ entry in hash table or not. If there is then the server will send the messages to $user_{2}$. This is how we can extend our client application to deal with offline users.
 \section{Cases Handled}
